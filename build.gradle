@@ -21,22 +21,32 @@ configurations {
 repositories {
     mavenCentral()
 }
-
 dependencies {
     // Spring Boot Core dependencies
     implementation 'org.springframework.boot:spring-boot-starter'
-    // For later use (Day 3+), good to have:
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
-    // Utility: Lombok is standard in Spring projects
+    // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // Replace H2 with MySQL for runtime
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
     // Testing dependencies
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test' // Includes MockMvc, AssertJ, JUnit, Mockito
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+
+    // Optional but recommended for JSON serialization/deserialization in tests
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Mockito integration with JUnit 5
+    testImplementation 'org.mockito:mockito-junit-jupiter'
 }
+
 
 tasks.named('test') {
     useJUnitPlatform()
