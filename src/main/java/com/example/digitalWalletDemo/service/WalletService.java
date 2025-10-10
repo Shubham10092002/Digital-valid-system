@@ -1,10 +1,14 @@
 package com.example.digitalWalletDemo.service;
 
+
 import com.example.digitalWalletDemo.data.WalletOperationResult;
 import com.example.digitalWalletDemo.model.Transaction;
 import com.example.digitalWalletDemo.model.Wallet;
 import com.example.digitalWalletDemo.repository.TransactionRepository;
 import com.example.digitalWalletDemo.repository.WalletRepository;
+import com.example.digitalWalletDemo.config.WalletConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,33 +21,43 @@ import java.util.Optional;
 @Service
 public class WalletService {
 
+    @Autowired
+    private WalletConfig walletConfig;
+
     private static final Logger log = LoggerFactory.getLogger(WalletService.class);
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
 
-    public WalletService(WalletRepository walletRepository, TransactionRepository transactionRepository) {
+    public WalletService(WalletRepository walletRepository,
+                         TransactionRepository transactionRepository,
+                         WalletConfig walletConfig) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
+        this.walletConfig = walletConfig;
     }
+
 
     @Transactional
     public WalletOperationResult credit(Long walletId, BigDecimal amount, String description) {
         log.info("Credit request: walletId={}, amount={}, description={}", walletId, amount, description);
+
         try {
             if (amount == null) {
                 log.warn("Credit failed: amount is null for walletId={}", walletId);
                 return new WalletOperationResult.Failure("INVALID_AMOUNT", "Amount cannot be null");
             }
+
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 log.warn("Credit failed: negative or zero amount={} for walletId={}", amount, walletId);
                 return new WalletOperationResult.Failure("INVALID_AMOUNT", "Amount must be positive");
             }
 
-            BigDecimal limit = new BigDecimal("100000.00");
+            BigDecimal limit = walletConfig.getMaxCreditLimit();
             if (amount.compareTo(limit) > 0) {
                 log.warn("Credit failed: amount={} exceeds limit for walletId={}", amount, walletId);
-                return new WalletOperationResult.Failure("LIMIT_EXCEEDED", "Credit amount cannot exceed $100000.00");
+                return new WalletOperationResult.Failure("LIMIT_EXCEEDED",
+                        "Credit amount cannot exceed $" + limit);
             }
 
             Optional<Wallet> walletOpt = walletRepository.findById(walletId);
@@ -80,6 +94,13 @@ public class WalletService {
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
                 log.warn("Debit failed: negative or zero amount={} for walletId={}", amount, walletId);
                 return new WalletOperationResult.Failure("INVALID_AMOUNT", "Amount must be positive");
+            }
+
+            BigDecimal limit = walletConfig.getMaxDebitLimit();
+            if (amount.compareTo(limit) > 0) {
+                log.warn("Debit failed: amount={} exceeds limit for walletId={}", amount, walletId);
+                return new WalletOperationResult.Failure("LIMIT_EXCEEDED",
+                        "Debit amount cannot exceed $" + limit);
             }
 
             Optional<Wallet> walletOpt = walletRepository.findById(walletId);

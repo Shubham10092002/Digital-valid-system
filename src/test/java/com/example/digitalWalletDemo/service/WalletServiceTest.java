@@ -1,5 +1,6 @@
 package com.example.digitalWalletDemo.service;
 
+import com.example.digitalWalletDemo.config.WalletConfig;
 import com.example.digitalWalletDemo.data.WalletOperationResult;
 import com.example.digitalWalletDemo.model.Transaction;
 import com.example.digitalWalletDemo.model.Wallet;
@@ -24,18 +25,28 @@ class WalletServiceTest {
     private WalletRepository walletRepository;
     private TransactionRepository transactionRepository;
     private WalletService walletService;
+    private WalletConfig walletConfig;
 
     @BeforeEach
     void setUp() {
+        log.info("===== WalletServiceTest Setup Started =====");
+
         walletRepository = mock(WalletRepository.class);
         transactionRepository = mock(TransactionRepository.class);
-        walletService = new WalletService(walletRepository, transactionRepository);
+
+        // Mock WalletConfig for limits
+        walletConfig = mock(WalletConfig.class);
+        when(walletConfig.getMaxCreditLimit()).thenReturn(new BigDecimal("100000.00"));
+        when(walletConfig.getMaxDebitLimit()).thenReturn(new BigDecimal("50000.00"));
+
+        // Inject mocks into service
+        walletService = new WalletService(walletRepository, transactionRepository, walletConfig);
+
         log.info("===== WalletServiceTest Setup Completed =====");
     }
 
     @Test
     void testCreditSuccess() {
-        log.info("Running testCreditSuccess...");
         Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(1000), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -51,7 +62,6 @@ class WalletServiceTest {
 
     @Test
     void testCreditWithNegativeAmount() {
-        log.info("Running testCreditWithNegativeAmount...");
         Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(1000), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -66,7 +76,6 @@ class WalletServiceTest {
 
     @Test
     void testCreditExceedingLimit() {
-        log.info("Running testCreditExceedingLimit...");
         Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(1000), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -81,7 +90,6 @@ class WalletServiceTest {
 
     @Test
     void testCreditToNonExistentWallet() {
-        log.info("Running testCreditToNonExistentWallet...");
         when(walletRepository.findById(99L)).thenReturn(Optional.empty());
 
         WalletOperationResult result = walletService.credit(99L, BigDecimal.valueOf(500), "Deposit");
@@ -93,7 +101,6 @@ class WalletServiceTest {
 
     @Test
     void testDebitSuccess() {
-        log.info("Running testDebitSuccess...");
         Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(1000), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -108,7 +115,6 @@ class WalletServiceTest {
 
     @Test
     void testDebitInsufficientFunds() {
-        log.info("Running testDebitInsufficientFunds...");
         Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(100), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -123,7 +129,6 @@ class WalletServiceTest {
 
     @Test
     void testDebitWithNegativeAmount() {
-        log.info("Running testDebitWithNegativeAmount...");
         Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(500), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -138,7 +143,6 @@ class WalletServiceTest {
 
     @Test
     void testDebitFromNonExistentWallet() {
-        log.info("Running testDebitFromNonExistentWallet...");
         when(walletRepository.findById(77L)).thenReturn(Optional.empty());
 
         WalletOperationResult result = walletService.debit(77L, BigDecimal.valueOf(300), "Purchase");
@@ -150,7 +154,6 @@ class WalletServiceTest {
 
     @Test
     void testGetBalanceSuccess() {
-        log.info("Running testGetBalanceSuccess...");
         Wallet wallet = new Wallet("My Wallet", BigDecimal.valueOf(1200), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -166,7 +169,6 @@ class WalletServiceTest {
 
     @Test
     void testGetBalanceWalletNotFound() {
-        log.info("Running testGetBalanceWalletNotFound...");
         when(walletRepository.findById(99L)).thenReturn(Optional.empty());
 
         WalletOperationResult result = walletService.getBalance(99L);
@@ -178,7 +180,6 @@ class WalletServiceTest {
 
     @Test
     void testNullAmount() {
-        log.info("Running testNullAmount...");
         Wallet wallet = new Wallet("Wallet A", BigDecimal.valueOf(1000), null);
         wallet.setId(1L);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
@@ -193,7 +194,6 @@ class WalletServiceTest {
 
     @Test
     void testExceptionHandling() {
-        log.info("Running testExceptionHandling...");
         when(walletRepository.findById(any())).thenThrow(new RuntimeException("DB connection failed"));
 
         WalletOperationResult result = walletService.credit(1L, BigDecimal.valueOf(100), "Deposit");
