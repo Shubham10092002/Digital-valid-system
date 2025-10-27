@@ -20,16 +20,49 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String invalidValue = ex.getValue() != null ? ex.getValue().toString() : "null";
-
-        logger.warn("Invalid ID format received: {}", invalidValue, ex);
+        logger.warn("Invalid ID format: {}", invalidValue, ex);
 
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", LocalDateTime.now());
         error.put("status", HttpStatus.BAD_REQUEST.value());
         error.put("error", "Bad Request");
-        error.put("message", "Invalid ID format: " + invalidValue + " (ID must be a numeric value)");
-        error.put("path", "/api/users/" + invalidValue);
+        error.put("message", "Invalid ID format: " + invalidValue + " (must be numeric)");
 
         return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleUserNotFound(UserNotFoundException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.NOT_FOUND.value());
+        error.put("errorCode", "USER_NOT_FOUND");
+        error.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(WalletIdNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleWalletNotFound(WalletIdNotFoundException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.NOT_FOUND.value());
+        error.put("errorCode", "WALLET_NOT_FOUND");
+        error.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        logger.error("Unhandled exception: ", ex);
+
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.BAD_REQUEST.value());
+        error.put("errorCode", "GENERIC_ERROR");
+        error.put("message", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }

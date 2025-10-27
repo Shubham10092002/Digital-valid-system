@@ -1,11 +1,13 @@
 package com.example.digitalWalletDemo.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Transaction {
 
     @Id
@@ -14,6 +16,7 @@ public class Transaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "wallet_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "transactions", "user"})
     private Wallet wallet;
 
     @Column(nullable = false)
@@ -35,35 +38,28 @@ public class Transaction {
     public Transaction() {}
 
     public Transaction(Wallet wallet, BigDecimal amount, Type type, String description) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0)
             throw new IllegalArgumentException("Invalid amount: must be greater than 0");
-        }
-        if (wallet == null) {
+        if (wallet == null)
             throw new IllegalArgumentException("Wallet cannot be null");
-        }
-        if (type == null ) {
+        if (type == null)
             throw new IllegalArgumentException("Transaction type must be specified");
-        }
-        if(type != Type.CREDIT && type != Type.DEBIT && type != Type.TRANSFER) {
-            throw new IllegalArgumentException("Invalid type");
-        }
 
         this.wallet = wallet;
         this.amount = amount;
         this.type = type;
         this.description = description;
-        this.timestamp = LocalDateTime.now();
     }
 
-    // Getters and setters
+    @PrePersist
+    protected void onCreate() {
+        this.timestamp = LocalDateTime.now();
+    }
 
     public Long getId() { return id; }
     public Wallet getWallet() { return wallet; }
     public void setWallet(Wallet wallet) { this.wallet = wallet; }
-    public void setId(Long id) {
-        this.id = id;
-    }
-
+    public void setId(Long id) { this.id = id; }
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
@@ -76,4 +72,15 @@ public class Transaction {
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "id=" + id +
+                ", amount=" + amount +
+                ", type=" + type +
+                ", description='" + description + '\'' +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 }

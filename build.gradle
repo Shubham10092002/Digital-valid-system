@@ -45,6 +45,8 @@ dependencies {
 
     // Mockito integration with JUnit 5
     testImplementation 'org.mockito:mockito-junit-jupiter'
+
+    testImplementation 'com.h2database:h2'
 }
 
 

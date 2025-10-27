@@ -1,6 +1,8 @@
 package com.example.digitalWalletDemo.model;
 
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,7 +28,7 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @ToString.Exclude
-    private List<Wallet> wallets;
+    private List<Wallet> wallets = new ArrayList<>();
 
     public User(String username, String password) {
         this.username = username;

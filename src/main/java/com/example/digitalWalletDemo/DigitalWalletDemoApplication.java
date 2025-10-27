@@ -8,7 +8,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
+
 @SpringBootApplication
+
 public class DigitalWalletDemoApplication {
 
     public static void main(String[] args) {

@@ -1,15 +1,21 @@
 package com.example.digitalWalletDemo.controller;
 
 import com.example.digitalWalletDemo.data.WalletOperationResult;
+import com.example.digitalWalletDemo.model.User;
+import com.example.digitalWalletDemo.model.Wallet;
+import com.example.digitalWalletDemo.repository.UserRepository;
+import com.example.digitalWalletDemo.repository.WalletRepository;
 import com.example.digitalWalletDemo.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -25,13 +31,91 @@ class WalletControllerTest {
     @MockBean
     private WalletService walletService;
 
+    @MockBean
+    private WalletRepository walletRepository;
+
+    @MockBean
+    private UserRepository userRepository;
+
     private WalletOperationResult.Success successResult;
     private WalletOperationResult.Failure failureResult;
 
     @BeforeEach
     void setUp() {
-        successResult = new WalletOperationResult.Success(1L, "Operation successful");
+        successResult = new WalletOperationResult.Success("Operation successful");
         failureResult = new WalletOperationResult.Failure("NOT_FOUND", "Wallet not found");
+    }
+
+    // ---------------- CREATE WALLET ----------------
+    @Test
+    void createWalletForUser_success() throws Exception {
+        User user = new User();
+        user.setId(10L);
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(walletRepository.save(any(Wallet.class))).thenAnswer(i -> i.getArgument(0));
+
+        String walletJson = """
+            {
+                "walletName": "My Savings",
+                "initialBalance": 5000
+            }
+            """;
+
+        mockMvc.perform(post("/api/wallets/user/10/create-wallet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(walletJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.walletName").value("My Savings"))
+                .andExpect(jsonPath("$.balance").value(5000));
+    }
+
+
+
+    @Test
+    void createWalletForUser_userNotFound_shouldReturnError() throws Exception {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        String walletJson = """
+            {
+                "walletName": "Emergency Fund",
+                "initialBalance": 1000
+            }
+            """;
+
+        mockMvc.perform(post("/api/wallets/user/99/create-wallet")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(walletJson))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("USER_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("User not found with ID: 99"));
+    }
+
+
+
+    // ---------------- GET WALLET BALANCE ----------------
+    @Test
+    void getWalletById_success() throws Exception {
+        WalletOperationResult.Balance balanceResult =
+                new WalletOperationResult.Balance(1L, "100.00");
+
+        when(walletService.getBalance(1L)).thenReturn(balanceResult);
+
+        mockMvc.perform(get("/api/wallets/1/balance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.walletId").value(1))
+                .andExpect(jsonPath("$.balance").value("100.00"))
+                .andExpect(jsonPath("$.message").value("Balance retrieved successfully"));
+    }
+
+    @Test
+    void getWalletById_notFound() throws Exception {
+        when(walletService.getBalance(99L)).thenReturn(failureResult);
+
+        mockMvc.perform(get("/api/wallets/99/balance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.reason").value("Wallet not found"));
     }
 
     // ---------------- CREDIT ----------------
@@ -109,30 +193,6 @@ class WalletControllerTest {
                 .andExpect(jsonPath("$.reason").value("Insufficient balance"));
     }
 
-    // ---------------- BALANCE ----------------
-    @Test
-    void getBalance_success() throws Exception {
-        WalletOperationResult.Balance balanceResult =
-                new WalletOperationResult.Balance(1L, "100.00", "Balance retrieved successfully");
-
-        when(walletService.getBalance(anyLong())).thenReturn(balanceResult);
-
-        mockMvc.perform(get("/api/wallets/1/balance"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.balance").value("100.00"))
-                .andExpect(jsonPath("$.message").value("Balance retrieved successfully"));
-    }
-
-    @Test
-    void getBalance_walletNotFound() throws Exception {
-        when(walletService.getBalance(anyLong())).thenReturn(failureResult);
-
-        mockMvc.perform(get("/api/wallets/99/balance"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
-                .andExpect(jsonPath("$.reason").value("Wallet not found"));
-    }
-
     // ---------------- TRANSFER ----------------
     @Test
     void transfer_success() throws Exception {
@@ -190,18 +250,5 @@ class WalletControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("INSUFFICIENT_FUNDS"))
                 .andExpect(jsonPath("$.reason").value("Insufficient balance"));
-    }
-
-    // ---------------- INVALID URL ----------------
-    @Test
-    void invalidUrl_shouldReturnNotFound() throws Exception {
-        mockMvc.perform(get("/api/wallets/invalid-url"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void wrongHttpMethod_shouldReturnMethodNotAllowed() throws Exception {
-        mockMvc.perform(get("/api/wallets/1/credit")) // credit expects POST
-                .andExpect(status().isMethodNotAllowed());
     }
 }

@@ -22,10 +22,10 @@ class UserControllerTypeMismatchTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private UserRepository userRepository;
+    private UserRepository userRepository; // <- real repository interface
 
     @MockBean
-    private WalletRepository walletRepository;
+    private WalletRepository walletRepository; // <- real repository interface
 
     @Test
     void testGetUserById_WhenIdIsString_ShouldReturnBadRequest() throws Exception {
@@ -35,7 +35,6 @@ class UserControllerTypeMismatchTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value(containsString("Invalid ID format: s")));
     }
-
 
     @Test
     void testGetUserById_WhenIdIsNull_ShouldReturnBadRequest() throws Exception {

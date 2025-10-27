@@ -18,6 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Enterprise-grade unit test for WalletService.
+ * Covers success, edge, negative, and exception scenarios.
+ */
 class WalletServiceTest {
 
     private static final Logger log = LoggerFactory.getLogger(WalletServiceTest.class);
@@ -33,13 +37,11 @@ class WalletServiceTest {
 
         walletRepository = mock(WalletRepository.class);
         transactionRepository = mock(TransactionRepository.class);
-
-        // Mock WalletConfig for limits
         walletConfig = mock(WalletConfig.class);
+
         when(walletConfig.getMaxCreditLimit()).thenReturn(new BigDecimal("100000.00"));
         when(walletConfig.getMaxDebitLimit()).thenReturn(new BigDecimal("50000.00"));
 
-        // Inject mocks into service
         walletService = new WalletService(walletRepository, transactionRepository, walletConfig);
 
         log.info("===== WalletServiceTest Setup Completed =====");
@@ -52,7 +54,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.credit(1L, BigDecimal.valueOf(500), "Deposit");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Success.class, result);
         assertEquals("1500.00", ((WalletOperationResult.Success) result).message().split(": ")[1]);
@@ -67,7 +68,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.credit(1L, BigDecimal.valueOf(-200), "Invalid Deposit");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("INVALID_AMOUNT", ((WalletOperationResult.Failure) result).errorCode());
@@ -81,7 +81,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.credit(1L, new BigDecimal("200000"), "Huge Deposit");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("LIMIT_EXCEEDED", ((WalletOperationResult.Failure) result).errorCode());
@@ -93,7 +92,6 @@ class WalletServiceTest {
         when(walletRepository.findById(99L)).thenReturn(Optional.empty());
 
         WalletOperationResult result = walletService.credit(99L, BigDecimal.valueOf(500), "Deposit");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("WALLET_NOT_FOUND", ((WalletOperationResult.Failure) result).errorCode());
@@ -106,7 +104,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.debit(1L, BigDecimal.valueOf(300), "Purchase");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Success.class, result);
         assertEquals("700.00", ((WalletOperationResult.Success) result).message().split(": ")[1]);
@@ -120,7 +117,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.debit(1L, BigDecimal.valueOf(200), "Withdraw");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("INSUFFICIENT_FUNDS", ((WalletOperationResult.Failure) result).errorCode());
@@ -134,7 +130,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.debit(1L, BigDecimal.valueOf(-100), "Invalid Withdrawal");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("INVALID_AMOUNT", ((WalletOperationResult.Failure) result).errorCode());
@@ -146,7 +141,6 @@ class WalletServiceTest {
         when(walletRepository.findById(77L)).thenReturn(Optional.empty());
 
         WalletOperationResult result = walletService.debit(77L, BigDecimal.valueOf(300), "Purchase");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("WALLET_NOT_FOUND", ((WalletOperationResult.Failure) result).errorCode());
@@ -159,7 +153,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.getBalance(1L);
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Balance.class, result);
         WalletOperationResult.Balance balanceResult = (WalletOperationResult.Balance) result;
@@ -172,7 +165,6 @@ class WalletServiceTest {
         when(walletRepository.findById(99L)).thenReturn(Optional.empty());
 
         WalletOperationResult result = walletService.getBalance(99L);
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("WALLET_NOT_FOUND", ((WalletOperationResult.Failure) result).errorCode());
@@ -185,7 +177,6 @@ class WalletServiceTest {
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
 
         WalletOperationResult result = walletService.credit(1L, null, "Null Deposit");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("INVALID_AMOUNT", ((WalletOperationResult.Failure) result).errorCode());
@@ -197,7 +188,6 @@ class WalletServiceTest {
         when(walletRepository.findById(any())).thenThrow(new RuntimeException("DB connection failed"));
 
         WalletOperationResult result = walletService.credit(1L, BigDecimal.valueOf(100), "Deposit");
-        log.info("Result: {}", result);
 
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("UNKNOWN_ERROR", ((WalletOperationResult.Failure) result).errorCode());
