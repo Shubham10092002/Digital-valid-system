@@ -3,8 +3,13 @@ package com.example.digitalWalletDemo.dto;
 import com.example.digitalWalletDemo.model.Transaction;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Size;
 
 public class TransactionDTO {
+
 
     private Long id;
     private Long walletId;

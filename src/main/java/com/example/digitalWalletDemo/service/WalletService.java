@@ -9,6 +9,7 @@ import com.example.digitalWalletDemo.model.Wallet;
 import com.example.digitalWalletDemo.repository.TransactionRepository;
 import com.example.digitalWalletDemo.repository.WalletRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -53,6 +54,7 @@ public class WalletService {
                 .collect(Collectors.toList());
     }
 
+
     public WalletOperationResult credit(Long walletId, BigDecimal amount, String description) {
         try {
             if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -80,6 +82,7 @@ public class WalletService {
             return new WalletOperationResult.Failure("UNKNOWN_ERROR", "An unexpected error occurred: " + e.getMessage());
         }
     }
+
 
     public WalletOperationResult debit(Long walletId, BigDecimal amount, String description) {
         try {

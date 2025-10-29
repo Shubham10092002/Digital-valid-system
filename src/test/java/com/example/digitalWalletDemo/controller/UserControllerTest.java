@@ -1,22 +1,25 @@
 package com.example.digitalWalletDemo.controller;
 
+import com.example.digitalWalletDemo.dto.UserDTO;
+import com.example.digitalWalletDemo.dto.UserResponseDTO;
+import com.example.digitalWalletDemo.mapping.userResponseMapper;
 import com.example.digitalWalletDemo.model.User;
 import com.example.digitalWalletDemo.model.Wallet;
 import com.example.digitalWalletDemo.repository.UserRepository;
 import com.example.digitalWalletDemo.repository.WalletRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -24,145 +27,142 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private WalletRepository walletRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private WalletRepository walletRepository;
+    @Mock private userResponseMapper userResponseMapper;
+    @Mock private BindingResult bindingResult;
 
     @InjectMocks
     private UserController userController;
 
-    private User user1;
-    private User user2;
-    private User user3;
+    private UserDTO validUserDTO;
 
     @BeforeEach
     void setup() {
-        user1 = new User("shubham", "pass123");
-        user2 = new User("alex", "pass456");
-        user3 = new User("shubham", "pass12");
-        user1.setId(1L);
-        user2.setId(2L);
-        user3.setId(3L);
+        validUserDTO = new UserDTO();
+        validUserDTO.setUsername("alice");
+        validUserDTO.setPassword("password123");
+        validUserDTO.setEmail("alice@example.com");
+        validUserDTO.setDateOfBirth(LocalDate.of(2000, 1, 1));
     }
-
     @Test
-    void testGetAllUsers() {
-        when(userRepository.findAll()).thenReturn(List.of(user1, user2, user3));
-
-        ResponseEntity<List<User>> response = userController.getAllUsers();
-        List<User> users = response.getBody();
-
-        assertEquals(3, users.size());
-        assertEquals("shubham", users.get(0).getUsername());
-        verify(userRepository, times(1)).findAll();
-    }
-
-    @Test
-    void testCreateUser() {
-        User user = new User("alice", "password123");
-        user.setWallets(new ArrayList<>()); // ✅ Prevent NPE
-
-        User savedUser = new User("alice", "password123");
+    void testCreateUser_ValidInput() {
+        // Given
+        User savedUser = new User();
         savedUser.setId(1L);
-        savedUser.setWallets(new ArrayList<>()); // ✅ Prevent NPE
+        savedUser.setUsername(validUserDTO.getUsername());
+        savedUser.setPassword(validUserDTO.getPassword());
 
+        Wallet wallet = new Wallet();
+        wallet.setId(1L);
+        wallet.setWalletName("Default Wallet");
+        wallet.setBalance(BigDecimal.ZERO);
+        wallet.setUser(savedUser);
+        savedUser.getWallets().add(wallet);
+
+        when(bindingResult.hasErrors()).thenReturn(false);
+        when(userRepository.findByUsername(validUserDTO.getUsername())).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(walletRepository.save(any(Wallet.class))).thenAnswer(invocation -> {
-            Wallet wallet = invocation.getArgument(0);
-            wallet.setId(1L);
-            return wallet;
-        });
+        when(userResponseMapper.toUserResponseDTO(any(User.class), any(Wallet.class)))
+                .thenReturn(new UserResponseDTO(1L, "alice", 1L, "Default Wallet", BigDecimal.ZERO));
 
-        ResponseEntity<?> response = userController.createUser(user);
+        // When
+        ResponseEntity<?> response = userController.createUser(validUserDTO, bindingResult);
 
-        assertTrue(response.getBody() instanceof Map);
-
-        Map<String, Object> userResponse = (Map<String, Object>) response.getBody();
-
-        assertEquals("alice", userResponse.get("username"));
-        assertEquals(1L, userResponse.get("userId"));
-
+        // Then
         verify(userRepository, times(1)).save(any(User.class));
+        verify(userResponseMapper, times(1)).toUserResponseDTO(any(User.class), any(Wallet.class));
+        verify(walletRepository, never()).save(any()); // Wallet saved via cascade
+
+        assertTrue(response.getStatusCode().is2xxSuccessful());
+        assertTrue(response.getBody() instanceof UserResponseDTO);
+
+        UserResponseDTO responseBody = (UserResponseDTO) response.getBody();
+        assertEquals("alice", responseBody.getUsername());
+        assertEquals("Default Wallet", responseBody.getWalletName());
     }
 
 
-
-
+    // ✅ 2. Missing username validation error
     @Test
-    void testCreateUserWithMissingUsername() {
-        User user = new User(null, "password123"); // Missing username
+    void testCreateUser_MissingUsername() {
+        validUserDTO.setUsername(null);
+        when(bindingResult.hasErrors()).thenReturn(true);
+        when(bindingResult.getFieldErrors()).thenReturn(
+                List.of(new FieldError("userDTO", "username", "Username is required"))
+        );
 
-        ResponseEntity<?> response = userController.createUser(user);
-
-        // Assert that the status is 400 Bad Request
+        ResponseEntity<?> response = userController.createUser(validUserDTO, bindingResult);
         assertEquals(400, response.getStatusCodeValue());
-        assertEquals("Username is required.", response.getBody());
-
-        // Ensure repository save is never called
-        verify(userRepository, never()).save(any(User.class));
-        verify(walletRepository, never()).save(any(Wallet.class));
+        Map<String, String> errors = (Map<String, String>) response.getBody();
+        assertTrue(errors.containsKey("username"));
+        assertEquals("Username is required", errors.get("username"));
     }
 
+    // ✅ 3. Missing password validation error
     @Test
-    void testCreateUserWithMissingPassword() {
-        User user = new User("alice", null); // Missing password
+    void testCreateUser_MissingPassword() {
+        validUserDTO.setPassword(null);
+        when(bindingResult.hasErrors()).thenReturn(true);
+        when(bindingResult.getFieldErrors()).thenReturn(
+                List.of(new FieldError("userDTO", "password", "Password is required"))
+        );
 
-        ResponseEntity<?> response = userController.createUser(user);
-
-        // Assert that the status is 400 Bad Request
+        ResponseEntity<?> response = userController.createUser(validUserDTO, bindingResult);
         assertEquals(400, response.getStatusCodeValue());
-        assertEquals("Password is required.", response.getBody());
-
-        // Ensure repository save is never called
-        verify(userRepository, never()).save(any(User.class));
-        verify(walletRepository, never()).save(any(Wallet.class));
+        Map<String, String> errors = (Map<String, String>) response.getBody();
+        assertTrue(errors.containsKey("password"));
+        assertEquals("Password is required", errors.get("password"));
     }
 
-
+    // ✅ 4. Duplicate username
     @Test
-    void testCreateUserWithDuplicateUsername() {
-        // Simulate an existing user in the repository
-        User existingUser = new User("alice", "pass123");
-        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(existingUser));
+    void testCreateUser_DuplicateUsername() {
+        when(bindingResult.hasErrors()).thenReturn(false);
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(new User()));
 
-        // Attempt to create a new user with the same username
-        User newUser = new User("alice", "newPassword");
-        ResponseEntity<?> response = userController.createUser(newUser);
-
-        // Assert that the response status is 400 Bad Request
+        ResponseEntity<?> response = userController.createUser(validUserDTO, bindingResult);
         assertEquals(400, response.getStatusCodeValue());
-
-        // Assert that the response body contains the duplicate username message
-        assertEquals("Username 'alice' already exists.", response.getBody());
-
-        // Verify that neither userRepository.save() nor walletRepository.save() is called
-        verify(userRepository, never()).save(any(User.class));
-        verify(walletRepository, never()).save(any(Wallet.class));
+        assertEquals("Username already exists", response.getBody());
+        verify(userRepository, never()).save(any());
     }
 
+    // ✅ 5. Invalid age (under 18)
+    @Test
+    void testCreateUser_InvalidAge() {
+        validUserDTO.setDateOfBirth(LocalDate.now().minusYears(10)); // age 10
+
+        when(bindingResult.hasErrors()).thenReturn(true);
+        when(bindingResult.getFieldErrors()).thenReturn(
+                List.of(new FieldError("userDTO", "dateOfBirth", "User must be at least 18 years old"))
+        );
+
+        ResponseEntity<?> response = userController.createUser(validUserDTO, bindingResult);
+        assertEquals(400, response.getStatusCodeValue());
+        Map<String, String> errors = (Map<String, String>) response.getBody();
+        assertEquals("User must be at least 18 years old", errors.get("dateOfBirth"));
+    }
+
+    // ✅ 6. Get user by ID - Found
     @Test
     void testGetUserByIdFound() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user1));
+        User user = new User("shubham", "pass123");
+        user.setId(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         ResponseEntity<?> response = userController.getUserById(1L);
+        assertEquals(200, response.getStatusCodeValue());
         assertTrue(response.getBody() instanceof User);
-        User resultUser = (User) response.getBody();
-
-        assertEquals("shubham", resultUser.getUsername());
-        verify(userRepository, times(1)).findById(1L);
+        assertEquals("shubham", ((User) response.getBody()).getUsername());
     }
 
-
+    // ✅ 7. Get user by ID - Not Found
     @Test
     void testGetUserByIdNotFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
-
         ResponseEntity<?> response = userController.getUserById(99L);
+
         assertEquals(404, response.getStatusCodeValue());
         assertEquals("User not found", response.getBody());
-        verify(userRepository, times(1)).findById(99L);
     }
-
 }

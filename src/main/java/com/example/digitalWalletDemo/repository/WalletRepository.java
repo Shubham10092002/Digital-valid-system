@@ -16,8 +16,7 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
 
     @Query("SELECT SUM(w.balance) FROM Wallet w WHERE w.user.id = :userId")
     BigDecimal getTotalBalanceByUserId(@Param("userId") Long userId);
-   // Optional<Wallet> findByWalletNumber(String walletNumber);
-
+    // Optional<Wallet> findByWalletNumber(String walletNumber);
 
 
     @Query("SELECT new com.example.digitalWalletDemo.dto.WalletBalanceDTO(w.id, w.walletName, w.balance) " +

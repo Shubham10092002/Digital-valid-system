@@ -1,6 +1,7 @@
 package com.example.digitalWalletDemo.controller;
 
 import com.example.digitalWalletDemo.exception.GlobalExceptionHandler;
+import com.example.digitalWalletDemo.mapping.userResponseMapper;
 import com.example.digitalWalletDemo.repository.UserRepository;
 import com.example.digitalWalletDemo.repository.WalletRepository;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ class UserControllerTypeMismatchTest {
 
     @MockBean
     private WalletRepository walletRepository; // <- real repository interface
+
+    @MockBean
+    private userResponseMapper userResponseMapper;
 
     @Test
     void testGetUserById_WhenIdIsString_ShouldReturnBadRequest() throws Exception {

@@ -10,14 +10,16 @@ import com.example.digitalWalletDemo.model.Wallet;
 import com.example.digitalWalletDemo.repository.UserRepository;
 import com.example.digitalWalletDemo.repository.WalletRepository;
 import com.example.digitalWalletDemo.service.WalletService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/wallets")
@@ -34,6 +36,7 @@ public class WalletController {
     }
 
 
+//@Transactional(readOnly = true)
 
     // ---------- GET ALL WALLETS ----------
     @GetMapping
@@ -49,24 +52,25 @@ public class WalletController {
         }
     }
 
+   // @Transactional
     //---------CREATE NEW WALLET------------
     @PostMapping("/user/{userId}/create-wallet")
     public ResponseEntity<?> createWalletForUser(
             @PathVariable Long userId,
-            @RequestBody CreateWalletDTO walletDTO
+           @Valid @RequestBody CreateWalletDTO walletDTO
     ) {
         // 1️⃣ Check if user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        // 2️⃣ Validate input
-        if (walletDTO.getWalletName() == null || walletDTO.getWalletName().isEmpty()) {
-            return ResponseEntity.badRequest().body("walletName cannot be empty");
-        }
-
-        if (walletDTO.getInitialBalance() == null) {
-            walletDTO.setInitialBalance(BigDecimal.ZERO);
-        }
+         //2️⃣ Validate input
+//        if (walletDTO.getWalletName() == null || walletDTO.getWalletName().isEmpty()) {
+//            return ResponseEntity.badRequest().body("walletName cannot be empty");
+//        }
+//
+//        if (walletDTO.getInitialBalance() == null) {
+//            walletDTO.setInitialBalance(BigDecimal.ZERO);
+//        }
 
         // 3️⃣ Create Wallet
         Wallet wallet = new Wallet();
@@ -80,6 +84,7 @@ public class WalletController {
     }
 
 
+   // @Transactional(readOnly = true, propagation = Propagation.SUPPORTS)
 
     // ---------- GET WALLETS BY USER ----------
     @GetMapping("/user/{userId}")
@@ -101,6 +106,7 @@ public class WalletController {
         }
     }
 
+   // @Transactional(readOnly = true)
     // ---------- GET TOTAL BALANCE BY USER ----------
     @GetMapping("/user/{userId}/totalBalance")
     public ResponseEntity<?> getTotalBalanceByUser(@PathVariable Long userId) {
@@ -111,6 +117,8 @@ public class WalletController {
         ));
     }
 
+
+   // @Transactional(readOnly = true)
     // ---------- GET TRANSACTION SUMMARY BY WALLET ----------
     @GetMapping("/{walletId}/transactions/summary")
     public ResponseEntity<List<TransactionSummaryDTO>> getTransactionSummary(@PathVariable Long walletId) {
@@ -154,7 +162,10 @@ public class WalletController {
         return buildResponse(result);
     }
 
+
+
     // ---------- GET BALANCE ----------
+  //  @Transactional(readOnly = true)
     @GetMapping("/{walletId}/balance")
     public ResponseEntity<?> getBalance(@PathVariable Long walletId) {
         WalletOperationResult result = walletService.getBalance(walletId);
