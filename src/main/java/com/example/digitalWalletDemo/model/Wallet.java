@@ -23,6 +23,9 @@ public class Wallet {
     @JsonBackReference
     private User user;
 
+    @Version
+    private Long version;  // <-- Optimistic locking version field
+
     public Wallet() {}
 
     public Wallet(String walletName, BigDecimal balance, User user) {
@@ -42,5 +45,7 @@ public class Wallet {
     public void setBalance(BigDecimal balance) { this.balance = balance; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 
 }

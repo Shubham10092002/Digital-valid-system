@@ -6,6 +6,7 @@ import com.example.digitalWalletDemo.model.Transaction;
 import com.example.digitalWalletDemo.model.Wallet;
 import com.example.digitalWalletDemo.repository.TransactionRepository;
 import com.example.digitalWalletDemo.repository.WalletRepository;
+import jakarta.persistence.OptimisticLockException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -193,4 +194,19 @@ class WalletServiceTest {
         assertEquals("UNKNOWN_ERROR", ((WalletOperationResult.Failure) result).errorCode());
         assertTrue(((WalletOperationResult.Failure) result).reason().contains("DB connection failed"));
     }
+
+
+    @Test
+    void testConcurrentUpdate_ThrowsOptimisticLockException() {
+        Wallet wallet = new Wallet("Concurrent Wallet", BigDecimal.valueOf(1000), null);
+        wallet.setId(1L);
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(walletRepository.save(wallet)).thenThrow(new OptimisticLockException("Concurrent update detected"));
+
+        WalletOperationResult result = walletService.credit(1L, BigDecimal.valueOf(200), "Concurrent deposit");
+
+        assertInstanceOf(WalletOperationResult.Failure.class, result);
+        assertEquals("CONFLICT", ((WalletOperationResult.Failure) result).errorCode());
+    }
+
 }

@@ -52,6 +52,8 @@ public class WalletController {
         }
     }
 
+
+
    // @Transactional
     //---------CREATE NEW WALLET------------
     @PostMapping("/user/{userId}/create-wallet")
@@ -59,20 +61,13 @@ public class WalletController {
             @PathVariable Long userId,
            @Valid @RequestBody CreateWalletDTO walletDTO
     ) {
-        // 1️⃣ Check if user exists
+        //  Check if user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-         //2️⃣ Validate input
-//        if (walletDTO.getWalletName() == null || walletDTO.getWalletName().isEmpty()) {
-//            return ResponseEntity.badRequest().body("walletName cannot be empty");
-//        }
-//
-//        if (walletDTO.getInitialBalance() == null) {
-//            walletDTO.setInitialBalance(BigDecimal.ZERO);
-//        }
 
-        // 3️⃣ Create Wallet
+
+        //  Create Wallet
         Wallet wallet = new Wallet();
         wallet.setWalletName(walletDTO.getWalletName());
         wallet.setBalance(walletDTO.getInitialBalance());
@@ -105,6 +100,7 @@ public class WalletController {
             ));
         }
     }
+
 
    // @Transactional(readOnly = true)
     // ---------- GET TOTAL BALANCE BY USER ----------
@@ -171,6 +167,13 @@ public class WalletController {
         WalletOperationResult result = walletService.getBalance(walletId);
         return buildResponse(result);
     }
+
+
+
+
+
+
+
 
     // ---------- TRANSFER ----------
     @PostMapping("/transfer")
