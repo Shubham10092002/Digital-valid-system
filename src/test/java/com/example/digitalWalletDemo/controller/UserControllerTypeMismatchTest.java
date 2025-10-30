@@ -4,6 +4,7 @@ import com.example.digitalWalletDemo.exception.GlobalExceptionHandler;
 import com.example.digitalWalletDemo.mapping.userResponseMapper;
 import com.example.digitalWalletDemo.repository.UserRepository;
 import com.example.digitalWalletDemo.repository.WalletRepository;
+import com.example.digitalWalletDemo.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -22,11 +23,15 @@ class UserControllerTypeMismatchTest {
     @Autowired
     private MockMvc mockMvc;
 
+    // Mock dependencies that UserController requires
     @MockBean
-    private UserRepository userRepository; // <- real repository interface
+    private UserService userService; // ✅ Required for UserController constructor
 
     @MockBean
-    private WalletRepository walletRepository; // <- real repository interface
+    private UserRepository userRepository; // Not required by controller but OK to keep if used indirectly
+
+    @MockBean
+    private WalletRepository walletRepository;
 
     @MockBean
     private userResponseMapper userResponseMapper;

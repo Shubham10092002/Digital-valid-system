@@ -18,6 +18,9 @@ public class TransactionDTO {
     private String description;
     private LocalDateTime timestamp;
 
+
+    public TransactionDTO() {}
+
     public TransactionDTO(Transaction transaction) {
         this.id = transaction.getId();
         this.walletId = transaction.getWallet() != null ? transaction.getWallet().getId() : null;

@@ -4,21 +4,19 @@ import com.example.digitalWalletDemo.dto.TransactionDTO;
 import com.example.digitalWalletDemo.exception.WalletIdNotFoundException;
 import com.example.digitalWalletDemo.model.Transaction;
 import com.example.digitalWalletDemo.model.Wallet;
-import com.example.digitalWalletDemo.repository.TransactionRepository;
-import com.example.digitalWalletDemo.repository.WalletRepository;
+import com.example.digitalWalletDemo.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -27,20 +25,19 @@ import static org.mockito.Mockito.when;
 class TransactionControllerExceptionTest {
 
     @Mock
-    private TransactionRepository transactionRepository;
-
-    @Mock
-    private WalletRepository walletRepository;
+    private TransactionService transactionService;
 
     @InjectMocks
     private TransactionController transactionController;
 
     private Wallet wallet;
     private Transaction tx;
+    private TransactionDTO dto;
 
     @BeforeEach
     void setup() {
         wallet = new Wallet();
+        wallet.setId(1L);
         wallet.setWalletName("Wallet1");
         wallet.setBalance(BigDecimal.valueOf(1000));
 
@@ -51,25 +48,27 @@ class TransactionControllerExceptionTest {
         tx.setType(Transaction.Type.CREDIT);
         tx.setDescription("Deposit");
         tx.setTimestamp(LocalDateTime.now());
+
+        dto = new TransactionDTO(tx);
     }
 
     @Test
     void getTransactionsByWallet_walletExists_returnsTransactions() {
-        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
-        when(transactionRepository.findByWalletId(1L)).thenReturn(List.of(tx));
+        when(transactionService.getTransactionsByWallet(1L)).thenReturn(List.of(dto));
 
         ResponseEntity<List<TransactionDTO>> response = transactionController.getTransactionsByWallet(1L);
         List<TransactionDTO> dtos = response.getBody();
 
         assertNotNull(dtos);
         assertEquals(1, dtos.size());
-        assertEquals(100, dtos.get(0).getAmount().intValue());
+        assertEquals(BigDecimal.valueOf(100), dtos.get(0).getAmount());
         assertEquals("CREDIT", dtos.get(0).getType());
     }
 
     @Test
     void getTransactionsByWallet_walletDoesNotExist_throwsException() {
-        when(walletRepository.findById(999L)).thenReturn(Optional.empty());
+        when(transactionService.getTransactionsByWallet(999L))
+                .thenThrow(new WalletIdNotFoundException("Wallet ID not found: 999"));
 
         WalletIdNotFoundException ex = assertThrows(
                 WalletIdNotFoundException.class,
@@ -81,8 +80,7 @@ class TransactionControllerExceptionTest {
 
     @Test
     void getTransactionsByWallet_emptyTransactionList_returnsEmpty() {
-        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
-        when(transactionRepository.findByWalletId(1L)).thenReturn(Collections.emptyList());
+        when(transactionService.getTransactionsByWallet(1L)).thenReturn(Collections.emptyList());
 
         ResponseEntity<List<TransactionDTO>> response = transactionController.getTransactionsByWallet(1L);
         List<TransactionDTO> dtos = response.getBody();

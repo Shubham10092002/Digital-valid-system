@@ -54,35 +54,7 @@ public class WalletService {
                 .map(r -> new TransactionSummaryDTO((Transaction.Type) r[0], (BigDecimal) r[1]))
                 .collect(Collectors.toList());
     }
-//
-//@Transactional
-//    public WalletOperationResult credit(Long walletId, BigDecimal amount, String description) {
-//        try {
-//            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-//                return new WalletOperationResult.Failure("INVALID_AMOUNT", "Amount must be greater than zero.");
-//            }
-//
-//            Optional<Wallet> walletOpt = walletRepository.findById(walletId);
-//            if (walletOpt.isEmpty()) {
-//                return new WalletOperationResult.Failure("WALLET_NOT_FOUND", "Wallet ID " + walletId + " not found.");
-//            }
-//
-//            Wallet wallet = walletOpt.get();
-//            if (amount.compareTo(walletConfig.getMaxCreditLimit()) > 0) {
-//                return new WalletOperationResult.Failure("LIMIT_EXCEEDED", "Amount exceeds credit limit.");
-//            }
-//
-//            wallet.setBalance(wallet.getBalance().add(amount));
-//            walletRepository.save(wallet);
-//
-//            Transaction transaction = new Transaction(wallet, amount, Transaction.Type.CREDIT, description);
-//            transactionRepository.save(transaction);
-//
-//            return new WalletOperationResult.Success("New Balance: " + wallet.getBalance().setScale(2));
-//        } catch (Exception e) {
-//            return new WalletOperationResult.Failure("UNKNOWN_ERROR", "An unexpected error occurred: " + e.getMessage());
-//        }
-//    }
+
 
     @Transactional
     public WalletOperationResult credit(Long walletId, BigDecimal amount, String description) {
@@ -122,37 +94,7 @@ public class WalletService {
     }
 
 
-//    public WalletOperationResult debit(Long walletId, BigDecimal amount, String description) {
-//        try {
-//            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-//                return new WalletOperationResult.Failure("INVALID_AMOUNT", "Amount must be greater than zero.");
-//            }
-//
-//            Optional<Wallet> walletOpt = walletRepository.findById(walletId);
-//            if (walletOpt.isEmpty()) {
-//                return new WalletOperationResult.Failure("WALLET_NOT_FOUND", "Wallet ID " + walletId + " not found.");
-//            }
-//
-//            Wallet wallet = walletOpt.get();
-//            if (amount.compareTo(walletConfig.getMaxDebitLimit()) > 0) {
-//                return new WalletOperationResult.Failure("LIMIT_EXCEEDED", "Amount exceeds debit limit.");
-//            }
-//
-//            if (wallet.getBalance().compareTo(amount) < 0) {
-//                return new WalletOperationResult.Failure("INSUFFICIENT_FUNDS", "Not enough balance.");
-//            }
-//
-//            wallet.setBalance(wallet.getBalance().subtract(amount));
-//            walletRepository.save(wallet);
-//
-//            Transaction transaction = new Transaction(wallet, amount, Transaction.Type.DEBIT, description);
-//            transactionRepository.save(transaction);
-//
-//            return new WalletOperationResult.Success("New Balance: " + wallet.getBalance().setScale(2));
-//        } catch (Exception e) {
-//            return new WalletOperationResult.Failure("UNKNOWN_ERROR", "An unexpected error occurred: " + e.getMessage());
-//        }
-//    }
+
 
 
     @Transactional
