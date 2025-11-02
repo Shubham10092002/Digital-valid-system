@@ -20,8 +20,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Enterprise-grade unit test for WalletService.
- * Covers success, edge, negative, and exception scenarios.
+ * Enterprise-grade unit test for WalletService (with TransactionService integration mock).
+ * Covers success, edge, negative, and exception scenarios including daily/monthly limits.
  */
 class WalletServiceTest {
 
@@ -29,8 +29,9 @@ class WalletServiceTest {
 
     private WalletRepository walletRepository;
     private TransactionRepository transactionRepository;
-    private WalletService walletService;
     private WalletConfig walletConfig;
+    private TransactionService transactionService; // ✅ new mock
+    private WalletService walletService;
 
     @BeforeEach
     void setUp() {
@@ -39,14 +40,19 @@ class WalletServiceTest {
         walletRepository = mock(WalletRepository.class);
         transactionRepository = mock(TransactionRepository.class);
         walletConfig = mock(WalletConfig.class);
+        transactionService = mock(TransactionService.class);
 
         when(walletConfig.getMaxCreditLimit()).thenReturn(new BigDecimal("100000.00"));
         when(walletConfig.getMaxDebitLimit()).thenReturn(new BigDecimal("50000.00"));
 
-        walletService = new WalletService(walletRepository, transactionRepository, walletConfig);
+        walletService = new WalletService(walletRepository, transactionRepository, walletConfig, transactionService);
 
         log.info("===== WalletServiceTest Setup Completed =====");
     }
+
+    // ======================================================
+    // ================ CREDIT TEST CASES ====================
+    // ======================================================
 
     @Test
     void testCreditSuccess() {
@@ -58,6 +64,8 @@ class WalletServiceTest {
 
         assertInstanceOf(WalletOperationResult.Success.class, result);
         assertEquals("1500.00", ((WalletOperationResult.Success) result).message().split(": ")[1]);
+        verify(transactionService, times(1))
+                .validateTransactionLimits(eq(1L), eq(BigDecimal.valueOf(500)), eq(Transaction.Type.CREDIT));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
         verify(walletRepository, times(1)).save(wallet);
     }
@@ -99,6 +107,27 @@ class WalletServiceTest {
     }
 
     @Test
+    void testCreditLimitValidationFailure() {
+        Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(2000), null);
+        wallet.setId(1L);
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        doThrow(new IllegalArgumentException("Daily limit exceeded"))
+                .when(transactionService)
+                .validateTransactionLimits(eq(1L), eq(BigDecimal.valueOf(1000)), eq(Transaction.Type.CREDIT));
+
+        WalletOperationResult result = walletService.credit(1L, BigDecimal.valueOf(1000), "Deposit");
+
+        assertInstanceOf(WalletOperationResult.Failure.class, result);
+        assertEquals("LIMIT_EXCEEDED", ((WalletOperationResult.Failure) result).errorCode());
+        assertTrue(((WalletOperationResult.Failure) result).reason().contains("Daily limit exceeded"));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+    }
+
+    // ======================================================
+    // ================ DEBIT TEST CASES =====================
+    // ======================================================
+
+    @Test
     void testDebitSuccess() {
         Wallet wallet = new Wallet("Test Wallet", BigDecimal.valueOf(1000), null);
         wallet.setId(1L);
@@ -108,6 +137,8 @@ class WalletServiceTest {
 
         assertInstanceOf(WalletOperationResult.Success.class, result);
         assertEquals("700.00", ((WalletOperationResult.Success) result).message().split(": ")[1]);
+        verify(transactionService, times(1))
+                .validateTransactionLimits(eq(1L), eq(BigDecimal.valueOf(300)), eq(Transaction.Type.DEBIT));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
@@ -148,6 +179,27 @@ class WalletServiceTest {
     }
 
     @Test
+    void testDebitLimitValidationFailure() {
+        Wallet wallet = new Wallet("Wallet A", BigDecimal.valueOf(2000), null);
+        wallet.setId(1L);
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        doThrow(new IllegalArgumentException("Monthly limit exceeded"))
+                .when(transactionService)
+                .validateTransactionLimits(eq(1L), eq(BigDecimal.valueOf(500)), eq(Transaction.Type.DEBIT));
+
+        WalletOperationResult result = walletService.debit(1L, BigDecimal.valueOf(500), "Purchase");
+
+        assertInstanceOf(WalletOperationResult.Failure.class, result);
+        assertEquals("LIMIT_EXCEEDED", ((WalletOperationResult.Failure) result).errorCode());
+        assertTrue(((WalletOperationResult.Failure) result).reason().contains("Monthly limit exceeded"));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+    }
+
+    // ======================================================
+    // ================ BALANCE TEST CASES ==================
+    // ======================================================
+
+    @Test
     void testGetBalanceSuccess() {
         Wallet wallet = new Wallet("My Wallet", BigDecimal.valueOf(1200), null);
         wallet.setId(1L);
@@ -170,6 +222,10 @@ class WalletServiceTest {
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("WALLET_NOT_FOUND", ((WalletOperationResult.Failure) result).errorCode());
     }
+
+    // ======================================================
+    // =============== EXCEPTION TEST CASES =================
+    // ======================================================
 
     @Test
     void testNullAmount() {
@@ -195,7 +251,6 @@ class WalletServiceTest {
         assertTrue(((WalletOperationResult.Failure) result).reason().contains("DB connection failed"));
     }
 
-
     @Test
     void testConcurrentUpdate_ThrowsOptimisticLockException() {
         Wallet wallet = new Wallet("Concurrent Wallet", BigDecimal.valueOf(1000), null);
@@ -208,5 +263,4 @@ class WalletServiceTest {
         assertInstanceOf(WalletOperationResult.Failure.class, result);
         assertEquals("CONFLICT", ((WalletOperationResult.Failure) result).errorCode());
     }
-
 }

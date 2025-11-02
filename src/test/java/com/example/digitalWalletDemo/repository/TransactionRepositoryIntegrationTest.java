@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,15 +57,20 @@ public class TransactionRepositoryIntegrationTest {
         Transaction t1 = new Transaction(wallet, BigDecimal.valueOf(100), Transaction.Type.CREDIT, "Deposit");
         transactionRepository.save(t1);
 
-        LocalDateTime start = LocalDateTime.now().minusHours(1);
-        LocalDateTime end = LocalDateTime.now().plusHours(1);
+        // Use UTC-based time range for consistency with DB storage
+        ZoneOffset utc = ZoneOffset.UTC;
+        LocalDateTime start = LocalDateTime.now(utc).minusHours(1);
+        LocalDateTime end = LocalDateTime.now(utc).plusHours(1);
 
         List<Transaction> txs = transactionRepository.findUserTransactionsBetweenDates(
                 wallet.getUser().getId(), start, end, null
         );
 
-        assertThat(txs).isNotEmpty();
+        assertThat(txs)
+                .as("Should find at least one transaction within the UTC window")
+                .isNotEmpty();
     }
+
 
     @Test
     void testInvalidTransactionAmountThrowsError() {

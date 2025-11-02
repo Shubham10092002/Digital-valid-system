@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,6 +25,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("endDate") LocalDateTime endDate,
             @Param("type") Transaction.Type type
     );
+
+    @Query("""
+    SELECT COALESCE(SUM(t.amount), 0)
+    FROM Transaction t
+    WHERE t.wallet.id = :walletId
+    AND t.type = :type
+    AND t.timestamp BETWEEN :start AND :end
+""")
+    BigDecimal getTotalAmountByWalletAndTypeBetweenDates(
+            @Param("walletId") Long walletId,
+            @Param("type") Transaction.Type type,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
 
     List<Transaction> findByWalletId(Long walletId);
 

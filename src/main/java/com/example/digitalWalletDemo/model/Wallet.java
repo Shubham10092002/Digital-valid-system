@@ -24,7 +24,8 @@ public class Wallet {
     private User user;
 
     @Version
-    private Long version;  // <-- Optimistic locking version field
+    @Column(nullable = true)
+    private Long version = 0L;  // <-- Optimistic locking version field
 
     public Wallet() {}
 

@@ -1,5 +1,6 @@
 package com.example.digitalWalletDemo.service;
 
+import com.example.digitalWalletDemo.config.WalletConfig;
 import com.example.digitalWalletDemo.dto.TransactionDTO;
 import com.example.digitalWalletDemo.exception.WalletIdNotFoundException;
 import com.example.digitalWalletDemo.model.Transaction;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,7 +23,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+@MockitoSettings(strictness = Strictness.LENIENT)
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
@@ -30,6 +35,9 @@ class TransactionServiceTest {
 
     @Mock
     private WalletRepository walletRepository;
+
+    @Mock
+    private WalletConfig walletConfig;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -50,6 +58,12 @@ class TransactionServiceTest {
         transaction.setType(Transaction.Type.CREDIT);
         transaction.setDescription("Test credit");
         transaction.setTimestamp(LocalDateTime.now());
+
+        // Default config limits
+        when(walletConfig.getDailyDebitLimit()).thenReturn(new BigDecimal("10000"));
+        when(walletConfig.getMonthlyDebitLimit()).thenReturn(new BigDecimal("50000"));
+        when(walletConfig.getDailyCreditLimit()).thenReturn(new BigDecimal("20000"));
+        when(walletConfig.getMonthlyCreditLimit()).thenReturn(new BigDecimal("100000"));
     }
 
     // ✅ 1. Get all transactions
@@ -151,5 +165,90 @@ class TransactionServiceTest {
         assertTrue(response instanceof List);
         List<?> result = (List<?>) response;
         assertEquals(1, result.size());
+    }
+
+    // ✅ 9. Validate transaction limits - within credit limits
+    @Test
+    void testValidateTransactionLimits_WithinCreditLimits() {
+        when(transactionRepository.getTotalAmountByWalletAndTypeBetweenDates(anyLong(), any(), any(), any()))
+                .thenReturn(BigDecimal.ZERO);
+
+        assertDoesNotThrow(() ->
+                transactionService.validateTransactionLimits(1L, new BigDecimal("1000"), Transaction.Type.CREDIT)
+        );
+    }
+
+    // ❌ 10. Daily credit limit exceeded
+    @Test
+    void testValidateTransactionLimits_DailyCreditLimitExceeded() {
+        when(transactionRepository.getTotalAmountByWalletAndTypeBetweenDates(
+                anyLong(), eq(Transaction.Type.CREDIT), any(), any()))
+                .thenReturn(new BigDecimal("19500")) // 1st call (daily)
+                .thenReturn(BigDecimal.ZERO);         // 2nd call (monthly)
+
+
+        when(walletConfig.getDailyCreditLimit()).thenReturn(new BigDecimal("20000"));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                transactionService.validateTransactionLimits(1L, new BigDecimal("1000"), Transaction.Type.CREDIT)
+        );
+
+        assertTrue(ex.getMessage().contains("CREDIT daily limit exceeded"));
+
+    }
+
+    // ❌ 11. Monthly debit limit exceeded
+    @Test
+    void testValidateTransactionLimits_MonthlyDebitLimitExceeded() {
+        when(transactionRepository.getTotalAmountByWalletAndTypeBetweenDates(
+                eq(1L), eq(Transaction.Type.DEBIT), any(), any()))
+                .thenReturn(BigDecimal.ZERO)
+                .thenReturn(new BigDecimal("49000"));
+
+        when(walletConfig.getMonthlyDebitLimit()).thenReturn(new BigDecimal("50000"));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                transactionService.validateTransactionLimits(1L, new BigDecimal("2000"), Transaction.Type.DEBIT)
+        );
+
+        assertTrue(ex.getMessage().contains("DEBIT monthly limit exceeded"));
+
+    }
+
+
+    // ✅ 12. Create transaction successfully
+    @Test
+    void testCreateTransaction_Success() {
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(transactionRepository.getTotalAmountByWalletAndTypeBetweenDates(anyLong(), any(), any(), any()))
+                .thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
+
+        TransactionDTO result = transactionService.createTransaction(1L, BigDecimal.valueOf(1000), Transaction.Type.CREDIT);
+
+        assertNotNull(result);
+        assertEquals("CREDIT", result.getType());
+        verify(transactionRepository, times(1)).save(any(Transaction.class));
+    }
+
+    // ❌ 13. Create transaction - wallet not found
+    @Test
+    void testCreateTransaction_WalletNotFound() {
+        when(walletRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(WalletIdNotFoundException.class,
+                () -> transactionService.createTransaction(99L, BigDecimal.valueOf(1000), Transaction.Type.CREDIT));
+    }
+
+    // ❌ 14. Create transaction - limit exceeded
+    @Test
+    void testCreateTransaction_LimitExceeded() {
+        when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+        when(transactionRepository.getTotalAmountByWalletAndTypeBetweenDates(anyLong(), eq(Transaction.Type.DEBIT), any(), any()))
+                .thenReturn(new BigDecimal("9900"));
+        when(walletConfig.getDailyDebitLimit()).thenReturn(new BigDecimal("10000"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> transactionService.createTransaction(1L, new BigDecimal("2000"), Transaction.Type.DEBIT));
     }
 }

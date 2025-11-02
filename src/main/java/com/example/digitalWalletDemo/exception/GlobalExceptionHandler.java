@@ -35,6 +35,20 @@ public class GlobalExceptionHandler {
 
 
 
+    @ExceptionHandler(LimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleLimitExceeded(LimitExceededException ex) {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),                // timestamp
+                HttpStatus.BAD_REQUEST.value(),     // status
+                ex.getErrorCode(),                  // errorCode
+                ex.getMessage(),                    // message
+                null                                // fieldErrors (none for this exception)
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleUserNotFound(UserNotFoundException ex) {

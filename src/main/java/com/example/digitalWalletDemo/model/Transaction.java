@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "transactions")
@@ -29,7 +31,9 @@ public class Transaction {
     @Column(length = 255)
     private String description;
 
+    @Column(name = "timestamp", columnDefinition = "TIMESTAMP(6)")
     private LocalDateTime timestamp;
+
 
     public enum Type {
         CREDIT, DEBIT, TRANSFER
@@ -53,8 +57,10 @@ public class Transaction {
 
     @PrePersist
     protected void onCreate() {
-        this.timestamp = LocalDateTime.now();
+        this.timestamp = LocalDateTime.now(ZoneOffset.UTC);
     }
+
+
 
     public Long getId() { return id; }
     public Wallet getWallet() { return wallet; }
