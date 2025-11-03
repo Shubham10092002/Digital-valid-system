@@ -11,7 +11,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,9 +23,14 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionControllerTest {
+    @Autowired
+    private MockMvc mockMvc;
+
 
     @Mock
     private TransactionService transactionService;
@@ -71,7 +79,9 @@ class TransactionControllerTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
+        //assertEquals("CREDIT", result.get(0).getType());
         assertEquals("CREDIT", result.get(0).getType());
+
     }
 
     // ❌ 3. Wallet not found
@@ -136,4 +146,6 @@ class TransactionControllerTest {
 
         assertEquals("Database connection failed", exception.getMessage());
     }
+
+
 }

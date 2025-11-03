@@ -4,7 +4,6 @@ import com.example.digitalWalletDemo.dto.TransactionDTO;
 import com.example.digitalWalletDemo.service.TransactionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -27,6 +26,25 @@ public class TransactionController {
     @GetMapping("/wallet/{walletId}")
     public ResponseEntity<List<TransactionDTO>> getTransactionsByWallet(@PathVariable Long walletId) {
         return ResponseEntity.ok(transactionService.getTransactionsByWallet(walletId));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<?> getTransactionHistory(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long walletId,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            return ResponseEntity.ok(transactionService.getTransactionHistory(
+                    userId, walletId, type, start, end, page, size
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // Get transactions for a user between dates (optionally filtered by type)

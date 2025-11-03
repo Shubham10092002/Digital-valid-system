@@ -12,6 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,6 +68,8 @@ public class TransactionService {
                 .collect(Collectors.toList());
     }
 
+
+
     /**
      * Get transactions for a specific user between two dates, optionally filtered by type.
      */
@@ -96,6 +101,58 @@ public class TransactionService {
     }
 
 
+    public Page<TransactionDTO> getTransactionHistory(
+            Long userId,
+            Long walletId,
+            String type,
+            String start,
+            String end,
+            int page,
+            int size
+    ) {
+        logger.info("Fetching transaction history: userId={}, walletId={}, type={}, start={}, end={}, page={}, size={}",
+                userId, walletId, type, start, end, page, size);
+
+        Transaction.Type transactionType = null;
+        if (type != null && !type.isBlank()) {
+            try {
+                transactionType = Transaction.Type.valueOf(type.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid transaction type: " + type);
+            }
+        }
+
+        LocalDateTime startDate = null;
+        LocalDateTime endDate = null;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+        try {
+            if (start != null && !start.isBlank()) {
+                startDate = LocalDate.parse(start, formatter).atStartOfDay();
+            }
+            if (end != null && !end.isBlank()) {
+                endDate = LocalDate.parse(end, formatter).atTime(23, 59, 59);
+            }
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid date format. Please use dd-MM-yyyy.");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Transaction> transactionPage = transactionRepository.findTransactionsWithFilters(
+                walletId,
+                userId,
+                transactionType,
+                startDate,
+                endDate,
+                pageable
+        );
+
+        return transactionPage.map(TransactionDTO::new);
+    }
+
+
+
 
 
     // ========================= NEW FUNCTIONALITY =========================
@@ -103,147 +160,7 @@ public class TransactionService {
     /**
      * Validate transaction limits before saving
      */
-//    public void validateTransactionLimits(Long walletId, BigDecimal amount, Transaction.Type type) {
-//        LocalDateTime now = LocalDateTime.now();
-//
-//        // Start and end of the day
-//        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
-//        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
-//
-//        // Start and end of the month
-//        LocalDateTime startOfMonth = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
-//        LocalDate today = LocalDate.now();
-//        LocalDateTime endOfMonth = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59);
-//
-//        // Defensive: avoid nulls from DB query
-//        BigDecimal dailyTotal = transactionRepository.getTotalAmountByWalletAndTypeBetweenDates(walletId, type, startOfDay, endOfDay);
-//        BigDecimal monthlyTotal = transactionRepository.getTotalAmountByWalletAndTypeBetweenDates(walletId, type, startOfMonth, endOfMonth);
-//
-//        if (dailyTotal == null) dailyTotal = BigDecimal.ZERO;
-//        if (monthlyTotal == null) monthlyTotal = BigDecimal.ZERO;
-//
-//        if (type == Transaction.Type.DEBIT) {
-//            if (dailyTotal.add(amount).compareTo(walletConfig.getDailyDebitLimit()) > 0) {
-//                throw new IllegalArgumentException("Daily debit limit exceeded: " +
-//                        dailyTotal.add(amount) + " > " + walletConfig.getDailyDebitLimit());
-//            }
-//            if (monthlyTotal.add(amount).compareTo(walletConfig.getMonthlyDebitLimit()) > 0) {
-//                throw new IllegalArgumentException("Monthly debit limit exceeded: " +
-//                        monthlyTotal.add(amount) + " > " + walletConfig.getMonthlyDebitLimit());
-//            }
-//        } else if (type == Transaction.Type.CREDIT) {
-//            if (dailyTotal.add(amount).compareTo(walletConfig.getDailyCreditLimit()) > 0) {
-//                throw new IllegalArgumentException("Daily credit limit exceeded: " +
-//                        dailyTotal.add(amount) + " > " + walletConfig.getDailyCreditLimit());
-//            }
-//            if (monthlyTotal.add(amount).compareTo(walletConfig.getMonthlyCreditLimit()) > 0) {
-//                throw new IllegalArgumentException("Monthly credit limit exceeded: " +
-//                        monthlyTotal.add(amount) + " > " + walletConfig.getMonthlyCreditLimit());
-//            }
-//        }
-//    }
 
-
-
-//    public void validateTransactionLimits(Long walletId, BigDecimal amount, Transaction.Type type) {
-//        LocalDateTime now = LocalDateTime.now();
-//
-//        // Start and end of the day
-//        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
-//        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
-//
-//        // Start and end of the month
-//        LocalDate firstDayOfMonth = now.toLocalDate().withDayOfMonth(1);
-//        LocalDate lastDayOfMonth = now.toLocalDate().withDayOfMonth(now.toLocalDate().lengthOfMonth());
-//        LocalDateTime startOfMonth = firstDayOfMonth.atStartOfDay();
-//        LocalDateTime endOfMonth = lastDayOfMonth.atTime(23, 59, 59);
-//
-//        // Fetch totals from DB
-//        BigDecimal dailyTotal = transactionRepository
-//                .getTotalAmountByWalletAndTypeBetweenDates(walletId, type, startOfDay, endOfDay);
-//        BigDecimal monthlyTotal = transactionRepository
-//                .getTotalAmountByWalletAndTypeBetweenDates(walletId, type, startOfMonth, endOfMonth);
-//
-//        // Defensive defaults
-//        if (dailyTotal == null) dailyTotal = BigDecimal.ZERO;
-//        if (monthlyTotal == null) monthlyTotal = BigDecimal.ZERO;
-//
-//        // Determine limits
-//        BigDecimal dailyLimit;
-//        BigDecimal monthlyLimit;
-//
-//        if (type == Transaction.Type.DEBIT) {
-//            dailyLimit = walletConfig.getDailyDebitLimit();
-//            monthlyLimit = walletConfig.getMonthlyDebitLimit();
-//        } else if (type == Transaction.Type.CREDIT) {
-//            dailyLimit = walletConfig.getDailyCreditLimit();
-//            monthlyLimit = walletConfig.getMonthlyCreditLimit();
-//        } else {
-//            throw new IllegalArgumentException("Unsupported transaction type: " + type);
-//        }
-//
-//        // Perform checks
-//        if (dailyTotal.add(amount).compareTo(dailyLimit) > 0) {
-//            throw new IllegalArgumentException(type + " daily limit exceeded: Attempt " +
-//                    dailyTotal.add(amount) + " > Allowed " + dailyLimit);
-//        }
-//
-//        if (monthlyTotal.add(amount).compareTo(monthlyLimit) > 0) {
-//            throw new IllegalArgumentException(type + " monthly limit exceeded: Attempt " +
-//                    monthlyTotal.add(amount) + " > Allowed " + monthlyLimit);
-//        }
-//    }
-//
-
-
-
-//    public void validateTransactionLimits(Long walletId, BigDecimal amount, Transaction.Type type) {
-//        // Use UTC since DB timestamps are stored in UTC
-//        ZoneId zone = ZoneOffset.UTC;
-//        LocalDateTime now = LocalDateTime.now(zone);
-//
-//        // Start and end of the day in UTC
-//        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
-//        LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
-//
-//        // Start and end of the month in UTC
-//        LocalDateTime startOfMonth = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
-//        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
-//
-//        // Defensive: avoid nulls from DB query
-//        BigDecimal dailyTotal = transactionRepository
-//                .getTotalAmountByWalletAndTypeBetweenDates(walletId, type, startOfDay, endOfDay);
-//        BigDecimal monthlyTotal = transactionRepository
-//                .getTotalAmountByWalletAndTypeBetweenDates(walletId, type, startOfMonth, endOfMonth);
-//
-//        if (dailyTotal == null) dailyTotal = BigDecimal.ZERO;
-//        if (monthlyTotal == null) monthlyTotal = BigDecimal.ZERO;
-//
-//        // --- Validation Logic ---
-//        if (type == Transaction.Type.DEBIT) {
-//            if (dailyTotal.add(amount).compareTo(walletConfig.getDailyDebitLimit()) > 0) {
-//                throw new IllegalArgumentException(
-//                        "Daily debit limit exceeded: " + dailyTotal.add(amount) + " > " + walletConfig.getDailyDebitLimit()
-//                );
-//            }
-//            if (monthlyTotal.add(amount).compareTo(walletConfig.getMonthlyDebitLimit()) > 0) {
-//                throw new IllegalArgumentException(
-//                        "Monthly debit limit exceeded: " + monthlyTotal.add(amount) + " > " + walletConfig.getMonthlyDebitLimit()
-//                );
-//            }
-//        } else if (type == Transaction.Type.CREDIT) {
-//            if (dailyTotal.add(amount).compareTo(walletConfig.getDailyCreditLimit()) > 0) {
-//                throw new IllegalArgumentException(
-//                        "Daily credit limit exceeded: " + dailyTotal.add(amount) + " > " + walletConfig.getDailyCreditLimit()
-//                );
-//            }
-//            if (monthlyTotal.add(amount).compareTo(walletConfig.getMonthlyCreditLimit()) > 0) {
-//                throw new IllegalArgumentException(
-//                        "Monthly credit limit exceeded: " + monthlyTotal.add(amount) + " > " + walletConfig.getMonthlyCreditLimit()
-//                );
-//            }
-//        }
-//    }
 
     public void validateTransactionLimits(Long walletId, BigDecimal amount, Transaction.Type type) {
         ZoneId appZone = ZoneId.of("Asia/Kolkata");
