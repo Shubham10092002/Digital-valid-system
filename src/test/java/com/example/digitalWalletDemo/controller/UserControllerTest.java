@@ -1,8 +1,9 @@
 package com.example.digitalWalletDemo.controller;
 
-import com.example.digitalWalletDemo.dto.UserDTO;
-import com.example.digitalWalletDemo.dto.UserResponseDTO;
-import com.example.digitalWalletDemo.service.UserService;
+import com.example.digitalWalletDemo.controller.userController.UserController;
+import com.example.digitalWalletDemo.dto.userdto.UserDTO;
+import com.example.digitalWalletDemo.dto.userdto.UserResponseDTO;
+import com.example.digitalWalletDemo.service.userService.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,11 +12,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;

@@ -1,8 +1,8 @@
 package com.example.digitalWalletDemo.mapping;
 
-import com.example.digitalWalletDemo.dto.UserResponseDTO;
-import com.example.digitalWalletDemo.model.User;
-import com.example.digitalWalletDemo.model.Wallet;
+import com.example.digitalWalletDemo.dto.userdto.UserResponseDTO;
+import com.example.digitalWalletDemo.model.userModel.User;
+import com.example.digitalWalletDemo.model.walletModel.Wallet;
 import org.springframework.stereotype.Component;
 
 @Component

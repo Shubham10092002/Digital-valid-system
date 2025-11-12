@@ -1,12 +1,15 @@
 package com.example.digitalWalletDemo.service;
 
-import com.example.digitalWalletDemo.dto.UserDTO;
-import com.example.digitalWalletDemo.dto.UserResponseDTO;
+import com.example.digitalWalletDemo.dto.userdto.UserDTO;
+import com.example.digitalWalletDemo.dto.userdto.UserResponseDTO;
+import com.example.digitalWalletDemo.dto.userdto.UserFullResponseDTO;
+
 import com.example.digitalWalletDemo.mapping.userResponseMapper;
-import com.example.digitalWalletDemo.model.User;
-import com.example.digitalWalletDemo.model.Wallet;
-import com.example.digitalWalletDemo.repository.UserRepository;
-import com.example.digitalWalletDemo.repository.WalletRepository;
+import com.example.digitalWalletDemo.model.userModel.User;
+import com.example.digitalWalletDemo.model.walletModel.Wallet;
+import com.example.digitalWalletDemo.repository.userRepository.UserRepository;
+import com.example.digitalWalletDemo.repository.walletRepository.WalletRepository;
+import com.example.digitalWalletDemo.service.userService.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -87,12 +90,22 @@ class UserServiceTest {
     @Test
     void testGetUserById_Found() {
         User user = new User("bob", "pw123");
+        Wallet wallet = new Wallet("Default Wallet", BigDecimal.valueOf(1000), user);
+        user.getWallets().add(wallet);
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         Object result = userService.getUserById(1L);
-        assertTrue(result instanceof User);
-        assertEquals("bob", ((User) result).getUsername());
+
+        assertTrue(result instanceof UserFullResponseDTO);
+
+        UserFullResponseDTO dto = (UserFullResponseDTO) result;
+        assertEquals("bob", dto.getUsername());
+        assertEquals(1, dto.getWallets().size());
+        assertEquals("Default Wallet", dto.getWallets().get(0).getWalletName());
+        assertEquals(BigDecimal.valueOf(1000), dto.getWallets().get(0).getBalance());
     }
+
 
     @Test
     void testGetUserById_NotFound() {

@@ -1,7 +1,7 @@
 package com.example.digitalWalletDemo.model;
 
-import com.example.digitalWalletDemo.model.Transaction;
-import com.example.digitalWalletDemo.model.Wallet;
+import com.example.digitalWalletDemo.model.transactionModel.Transaction;
+import com.example.digitalWalletDemo.model.walletModel.Wallet;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

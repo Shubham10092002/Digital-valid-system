@@ -1,10 +1,11 @@
 package com.example.digitalWalletDemo.controller;
 
+import com.example.digitalWalletDemo.controller.userController.UserController;
 import com.example.digitalWalletDemo.exception.GlobalExceptionHandler;
 import com.example.digitalWalletDemo.mapping.userResponseMapper;
-import com.example.digitalWalletDemo.repository.UserRepository;
-import com.example.digitalWalletDemo.repository.WalletRepository;
-import com.example.digitalWalletDemo.service.UserService;
+import com.example.digitalWalletDemo.repository.userRepository.UserRepository;
+import com.example.digitalWalletDemo.repository.walletRepository.WalletRepository;
+import com.example.digitalWalletDemo.service.userService.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

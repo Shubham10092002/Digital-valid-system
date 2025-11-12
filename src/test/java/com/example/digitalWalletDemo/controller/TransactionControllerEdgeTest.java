@@ -1,10 +1,11 @@
 package com.example.digitalWalletDemo.controller;
 
-import com.example.digitalWalletDemo.dto.TransactionDTO;
+import com.example.digitalWalletDemo.controller.transactionController.TransactionController;
+import com.example.digitalWalletDemo.dto.transactiondto.TransactionDTO;
 import com.example.digitalWalletDemo.exception.WalletIdNotFoundException;
-import com.example.digitalWalletDemo.model.Transaction;
-import com.example.digitalWalletDemo.model.Wallet;
-import com.example.digitalWalletDemo.service.TransactionService;
+import com.example.digitalWalletDemo.model.transactionModel.Transaction;
+import com.example.digitalWalletDemo.model.walletModel.Wallet;
+import com.example.digitalWalletDemo.service.transactionService.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

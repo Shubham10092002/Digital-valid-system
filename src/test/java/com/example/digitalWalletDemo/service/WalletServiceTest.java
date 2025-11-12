@@ -2,10 +2,13 @@ package com.example.digitalWalletDemo.service;
 
 import com.example.digitalWalletDemo.config.WalletConfig;
 import com.example.digitalWalletDemo.data.WalletOperationResult;
-import com.example.digitalWalletDemo.model.Transaction;
-import com.example.digitalWalletDemo.model.Wallet;
-import com.example.digitalWalletDemo.repository.TransactionRepository;
-import com.example.digitalWalletDemo.repository.WalletRepository;
+import com.example.digitalWalletDemo.model.transactionModel.Transaction;
+import com.example.digitalWalletDemo.model.walletModel.Wallet;
+import com.example.digitalWalletDemo.repository.transactionRepository.TransactionRepository;
+import com.example.digitalWalletDemo.repository.userRepository.UserRepository;
+import com.example.digitalWalletDemo.repository.walletRepository.WalletRepository;
+import com.example.digitalWalletDemo.service.transactionService.TransactionService;
+import com.example.digitalWalletDemo.service.walletService.WalletService;
 import jakarta.persistence.OptimisticLockException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,7 @@ class WalletServiceTest {
     private WalletConfig walletConfig;
     private TransactionService transactionService; // ✅ new mock
     private WalletService walletService;
+    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
@@ -41,11 +45,13 @@ class WalletServiceTest {
         transactionRepository = mock(TransactionRepository.class);
         walletConfig = mock(WalletConfig.class);
         transactionService = mock(TransactionService.class);
+        userRepository = mock(UserRepository.class);
+
 
         when(walletConfig.getMaxCreditLimit()).thenReturn(new BigDecimal("100000.00"));
         when(walletConfig.getMaxDebitLimit()).thenReturn(new BigDecimal("50000.00"));
 
-        walletService = new WalletService(walletRepository, transactionRepository, walletConfig, transactionService);
+        walletService = new WalletService(walletRepository, transactionRepository, walletConfig, transactionService,userRepository);
 
         log.info("===== WalletServiceTest Setup Completed =====");
     }

@@ -1,8 +1,10 @@
 package com.example.digitalWalletDemo.repository;
 
-import com.example.digitalWalletDemo.dto.WalletBalanceDTO;
-import com.example.digitalWalletDemo.model.User;
-import com.example.digitalWalletDemo.model.Wallet;
+import com.example.digitalWalletDemo.dto.walletdto.WalletBalanceDTO;
+import com.example.digitalWalletDemo.model.userModel.User;
+import com.example.digitalWalletDemo.model.walletModel.Wallet;
+import com.example.digitalWalletDemo.repository.userRepository.UserRepository;
+import com.example.digitalWalletDemo.repository.walletRepository.WalletRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

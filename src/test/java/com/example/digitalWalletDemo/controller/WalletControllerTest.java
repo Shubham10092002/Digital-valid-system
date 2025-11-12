@@ -1,11 +1,15 @@
 package com.example.digitalWalletDemo.controller;
 
+import com.example.digitalWalletDemo.controller.walletController.WalletController;
 import com.example.digitalWalletDemo.data.WalletOperationResult;
-import com.example.digitalWalletDemo.model.User;
-import com.example.digitalWalletDemo.model.Wallet;
-import com.example.digitalWalletDemo.repository.UserRepository;
-import com.example.digitalWalletDemo.repository.WalletRepository;
-import com.example.digitalWalletDemo.service.WalletService;
+import com.example.digitalWalletDemo.dto.walletdto.CreateWalletDTO;
+import com.example.digitalWalletDemo.dto.walletdto.WalletResponseDTO;
+import com.example.digitalWalletDemo.exception.UserNotFoundException;
+import com.example.digitalWalletDemo.model.userModel.User;
+import com.example.digitalWalletDemo.model.walletModel.Wallet;
+import com.example.digitalWalletDemo.repository.userRepository.UserRepository;
+import com.example.digitalWalletDemo.repository.walletRepository.WalletRepository;
+import com.example.digitalWalletDemo.service.walletService.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,48 +51,102 @@ class WalletControllerTest {
     }
 
     // ---------------- CREATE WALLET ----------------
+//    @Test
+//    void createWalletForUser_success() throws Exception {
+//        User user = new User();
+//        user.setId(10L);
+//
+//        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+//        when(walletRepository.save(any(Wallet.class))).thenAnswer(i -> i.getArgument(0));
+//
+//        String walletJson = """
+//            {
+//                "walletName": "My Savings",
+//                "initialBalance": 5000
+//            }
+//            """;
+//
+//        mockMvc.perform(post("/api/wallets/user/10/create-wallet")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(walletJson))
+//                .andExpect(status().isCreated())
+//                .andExpect(jsonPath("$.walletName").value("My Savings"))
+//                .andExpect(jsonPath("$.walletBalance").value(5000));
+//
+//    }
+
+
     @Test
     void createWalletForUser_success() throws Exception {
-        User user = new User();
-        user.setId(10L);
+        CreateWalletDTO dto = new CreateWalletDTO();
+        dto.setWalletName("My Savings");
+        dto.setInitialBalance(new BigDecimal("5000"));
 
-        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-        when(walletRepository.save(any(Wallet.class))).thenAnswer(i -> i.getArgument(0));
+        WalletResponseDTO responseDTO = new WalletResponseDTO();
+        responseDTO.setWalletId(1L);
+        responseDTO.setWalletName("My Savings");
+        responseDTO.setWalletBalance(new BigDecimal("5000"));
+
+        when(walletService.createWalletForUser(eq(10L), any(CreateWalletDTO.class)))
+                .thenReturn(responseDTO);
 
         String walletJson = """
-            {
-                "walletName": "My Savings",
-                "initialBalance": 5000
-            }
-            """;
+        {
+            "walletName": "My Savings",
+            "initialBalance": 5000
+        }
+        """;
 
         mockMvc.perform(post("/api/wallets/user/10/create-wallet")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(walletJson))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.walletName").value("My Savings"))
-                .andExpect(jsonPath("$.balance").value(5000));
+                .andExpect(jsonPath("$.walletBalance").value(5000));
     }
 
 
 
+
+//    @Test
+//    void createWalletForUser_userNotFound_shouldReturnError() throws Exception {
+//        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+//
+//        String walletJson = """
+//            {
+//                "walletName": "Emergency Fund",
+//                "initialBalance": 1000
+//            }
+//            """;
+//
+//        mockMvc.perform(post("/api/wallets/user/99/create-wallet")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(walletJson))
+//                .andExpect(status().isNotFound())
+//                .andExpect(jsonPath("$.errorCode").value("USER_NOT_FOUND"))
+//                .andExpect(jsonPath("$.reason").value("User not found with ID: 99"));
+//
+//    }
+
+
     @Test
     void createWalletForUser_userNotFound_shouldReturnError() throws Exception {
-        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        when(walletService.createWalletForUser(eq(99L), any(CreateWalletDTO.class)))
+                .thenThrow(new UserNotFoundException(99L));
 
         String walletJson = """
-            {
-                "walletName": "Emergency Fund",
-                "initialBalance": 1000
-            }
-            """;
+        {
+            "walletName": "Emergency Fund",
+            "initialBalance": 1000
+        }
+        """;
 
         mockMvc.perform(post("/api/wallets/user/99/create-wallet")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(walletJson))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("USER_NOT_FOUND"))
-                .andExpect(jsonPath("$.message").value("User not found with ID: 99"));
+                .andExpect(jsonPath("$.reason").value("User not found with ID: 99"));
     }
 
 
